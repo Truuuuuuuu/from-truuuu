@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
 
 type Heart = {
+    size: number;
     top: number
     left: number
     xOffset: number
@@ -13,7 +14,15 @@ type Heart = {
 
 export default function YesPage() {
     const [showMessage, setShowMessage] = useState(false)
-    const [hearts, setHearts] = useState<Heart[]>([])
+
+    const [current, setCurrent] = useState(0)
+    const [reasons, setReasons] = useState([
+        { text: "YOU", revealed: false },
+        { text: "ARE", revealed: false },
+        { text: "THE", revealed: false },
+        { text: "SPECIAL", revealed: false },
+        { text: "ONE", revealed: false },
+    ])
 
     const photos = [
         "/memory1.jpg",
@@ -23,126 +32,196 @@ export default function YesPage() {
         "/memory5.jpg",
     ]
 
-    const [current, setCurrent] = useState(0)
+    const nextSlide = () => setCurrent((prev) => (prev + 1) % photos.length)
+    const prevSlide = () =>
+        setCurrent((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
 
-    const nextSlide = () => {
-        setCurrent((prev) => (prev + 1) % photos.length)
-    }
-
-    const prevSlide = () => {
-        setCurrent((prev) =>
-            prev === 0 ? photos.length - 1 : prev - 1
+    const handleReveal = (index: number) =>
+        setReasons((prev) =>
+            prev.map((item, i) => (i === index ? { ...item, revealed: true } : item))
         )
-    }
 
-
-    const [reasons, setReasons] = useState([
-        { text: "YOU", revealed: false },
-        { text: "ARE", revealed: false },
-        { text: "THE", revealed: false },
-        { text: "SPECIAL", revealed: false },
-        { text: "ONE", revealed: false },
-    ])
-
-    const handleReveal = (index: number) => {
-        setReasons(prev =>
-            prev.map((item, i) =>
-                i === index ? { ...item, revealed: true } : item
-            )
-        )
-    }
-
-    const allRevealed = reasons.every(r => r.revealed)
-
-
-    // Generate hearts only on client after mount (hydration-safe + ESLint-safe)
-    useEffect(() => {
-        const heartsData: Heart[] = Array.from({ length: 10 }).map(() => ({
+    const [hearts] = useState<Heart[]>(() =>
+        Array.from({ length: 30 }).map(() => ({
+            size: Math.random()*10,
             top: Math.random() * 100,
             left: Math.random() * 100,
             xOffset: Math.random() * 200 - 100,
             duration: 6 + Math.random() * 4,
             delay: Math.random() * 2,
         }))
-        setHearts(heartsData)
-    }, [])
+    )
+
 
     return (
         <div className="min-h-screen bg-pink-100 text-center px-6 py-16 space-y-32 relative overflow-hidden">
 
-            {/* 🌸 Floating Hearts */}
+            {/* Floating Hearts */}
             {hearts.map((heart, i) => (
                 <motion.div
                     key={i}
                     initial={{ y: 0, opacity: 0 }}
                     animate={{ y: [-20, 20, -20], x: heart.xOffset, opacity: [0.2, 0.1, 0.2] }}
-                    transition={{
-                        duration: heart.duration,
-                        repeat: Infinity,
-                        repeatType: "mirror",
-                        delay: heart.delay,
+                    transition={{ duration: heart.duration, repeat: Infinity, repeatType: "mirror", delay: heart.delay }}
+                    className="absolute text-pink-400 pointer-events-none"
+                    style={{
+                        top: `${heart.top}%`,
+                        left: `${heart.left}%`,
+                        fontSize: `${heart.size || 2}rem`, // fallback to 2rem if size undefined
                     }}
-                    className="absolute text-pink-400 text-2xl md:text-3xl pointer-events-none"
-                    style={{ top: `${heart.top}%`, left: `${heart.left}%` }}
                 >
                     ❤️
                 </motion.div>
+
             ))}
 
-            {/* ❤️ SECTION 1 */}
+            {/* Section 1: Photos + Two-Fold Letter */}
             <section className="relative flex items-center justify-center min-h-[80vh] z-10">
-                {/* LEFT IMAGE */}
+
+                {/* Left Photo */}
                 <motion.img
-                    initial={{ opacity: 0, x: -100, rotate: -10 }}
-                    animate={{ opacity: 1, x: 0, rotate: -10 }}
-                    transition={{ duration: 1 }}
                     src="/photo1.jpg"
+                    initial={{ opacity: 0, x: -100, rotate: -10 }}
+                    animate={{
+                        opacity: 1,        // fade-in once
+                        x: [0, -5, 0, 5, 0], // floating loop
+                        y: [0, -5, 0, 5, 0], // floating loop
+                        rotate: -10
+                    }}
+                    transition={{
+                        opacity: { duration: 1 },       // fade-in duration
+                        x: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" },
+                        y: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" }
+                    }}
                     className="w-40 md:w-60 rounded-2xl shadow-xl absolute left-5 md:left-20"
                 />
 
-                {/* RIGHT IMAGE */}
+                {/* Right Photo */}
                 <motion.img
-                    initial={{ opacity: 0, x: 100, rotate: 10 }}
-                    animate={{ opacity: 1, x: 0, rotate: 10 }}
-                    transition={{ duration: 1 }}
                     src="/photo2.jpg"
+                    initial={{ opacity: 0, x: 100, rotate: 10 }}
+                    animate={{
+                        opacity: 1,
+                        x: [0, 5, 0, -5, 0],
+                        y: [0, 5, 0, -5, 0],
+                        rotate: 10
+                    }}
+                    transition={{
+                        opacity: { duration: 1 },
+                        x: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" },
+                        y: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" }
+                    }}
                     className="w-40 md:w-60 rounded-2xl shadow-xl absolute right-5 md:right-20"
                 />
 
-                {/* CENTER CONTENT */}
-                <div className="max-w-md z-20 ">
+
+                {/* Two-Fold Letter */}
+                <div className="max-w-md z-20 flex flex-col items-center">
                     <motion.h1
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="text-3xl md:text-5xl font-bold text-pink-600 mb-6"
+                        className="text-3xl md:text-5xl font-serif text-rose-600 mb-10"
                     >
-                        Happy Valentines Day luv! 💐
+                        Happy Valentines Day, luv 💐
                     </motion.h1>
 
-                    <button
-                        onClick={() => setShowMessage(true)}
-                        className="bg-pink-500 text-white  px-6 py-3 rounded-2xl text-lg shadow-lg active:scale-95 transition"
-                    >
-                        Tap to reveal message 💌
-                    </button>
-
-                    {showMessage && (
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 1 }}
-                            className="mt-6 text-lg md:text-xl text-pink-800 italic"
+                    <div className="relative w-80 h-56" style={{ perspective: 1200 }}>
+                        {/* Inside Letter */}
+                        <div className="absolute inset-0 bg-white rounded-xl shadow-2xl p-6 flex items-center justify-center z-0">
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: showMessage ? 1 : 0 }}
+                                transition={{ duration: 0.6, delay: showMessage ? 0.8 : 0 }}
+                                className="text-rose-800 italic text-sm md:text-base leading-relaxed text-center"
+                            >
+                                I love you so much. You are the reason why I keep fighting
+                                and thriving every day so that I can give you a better future.
+                                I’ll always be there for you whatever it takes. 💖
+                            </motion.p>
+                        </div>
+                        <motion.div
+                            onClick={() => setShowMessage(!showMessage)}
+                            animate={{ rotateX: showMessage ? -180 : 0 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="absolute inset-0 rounded-xl shadow-xl cursor-pointer z-10"
+                            style={{
+                                transformOrigin: "top",
+                                backfaceVisibility: "hidden",
+                                boxShadow: showMessage
+                                    ? "0 15px 30px rgba(0,0,0,0.25)"
+                                    : "0 8px 20px rgba(0,0,0,0.15)",
+                                borderTop: "1px solid rgba(255,255,255,0.2)",
+                            }}
                         >
-                            I love you so much, you are the reason why I keep fighting and thriving everyday
-                            so that I can give you a better future,  I'll always be there
-                            for you whatever it takes.💖
-                        </motion.p>
-                    )}
+                            {/* Inner wobble layer */}
+                            <motion.div
+                                animate={{ rotateZ: showMessage ? [-2, 2, 0] : 0 }}
+                                transition={{ type: "keyframes", duration: 0.6 }}
+                                className="absolute inset-0 bg-gradient-to-r from-rose-500 to-pink-500
+               flex items-center justify-center text-white font-semibold text-lg rounded-xl"
+                            >
+                                {!showMessage && "Tap to Open 💌"}
+                            </motion.div>
+                        </motion.div>
 
+                    </div>
+                </div>
+            </section>
+
+            {/* 🌸 FLOWER SECTION */}
+            <section className="min-h-[60vh] flex flex-col items-center justify-center py-16 px-4 space-y-8">
+                <motion.h2
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    viewport={{ once: true }}
+                    className="text-3xl md:text-4xl font-serif text-pink-700 mb-6"
+                >
+                    Flowers and Chocolates for you
+                </motion.h2>
+
+                <div className="flex flex-col md:flex-row gap-6 items-center justify-center w-full max-w-4xl">
+                    {/* Left Flower Photo */}
+                    <motion.img
+                        src="/flower1.png"
+                        alt="Flower 1"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        animate={{
+                            x: [0, -5, 0, 5, 0],
+                            y: [0, -5, 0, 5, 0]
+                        }}
+                        transition={{
+                            opacity: { duration: 0.6 },
+                            x: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" },
+                            y: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" },
+                        }}
+                        className="w-full md:w-1/2 object-contain"
+                    />
+
+                    {/* Right Flower Photo */}
+                    <motion.img
+                        src="/flower2.png"
+                        alt="Flower 2"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        animate={{
+                            x: [0, 5, 0, -5, 0],
+                            y: [0, 5, 0, -5, 0]
+                        }}
+                        transition={{
+                            opacity: { duration: 0.6, delay: 0.2 },
+                            x: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" },
+                            y: { duration: 6, repeat: Infinity, repeatType: "loop", ease: "easeInOut" },
+                        }}
+                        className="w-full md:w-1/2 object-contain"
+                    />
 
                 </div>
             </section>
+
+
 
             {/* ❤️ SECTION 2 – Mini Game */}
             <section className="space-y-12 z-10 min-h-[80vh] flex flex-col items-center justify-center">
@@ -152,7 +231,7 @@ export default function YesPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
                     viewport={{ once: true }}
-                    className="text-2xl md:text-4xl font-bold text-pink-700"
+                    className="text-2xl md:text-4xl font-serif text-pink-700"
                 >
                     Mini Game: Tap the Hearts 💕
                 </motion.h2>
@@ -200,7 +279,7 @@ export default function YesPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
                     viewport={{ once: true }}
-                    className="text-3xl md:text-5xl font-bold text-pink-700"
+                    className="text-3xl md:text-5xl font-serif text-pink-700"
                 >
                     Our Memories Together 📸💞
                 </motion.h2>
@@ -271,7 +350,6 @@ export default function YesPage() {
                 </motion.p>
 
             </section>
-
 
 
         </div>
